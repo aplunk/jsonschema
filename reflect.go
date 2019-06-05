@@ -158,7 +158,15 @@ type protoEnum interface {
 	EnumDescriptor() ([]byte, []int)
 }
 
-var protoEnumType = reflect.TypeOf((*protoEnum)(nil)).Elem()
+// Custom schema types can be implemented by implementing this interface
+type customSchema interface {
+	SchemaType() *Type
+}
+
+var (
+	protoEnumType    = reflect.TypeOf((*protoEnum)(nil)).Elem()
+	customSchemaType = reflect.TypeOf((*customSchema)(nil)).Elem()
+)
 
 func (r *Reflector) reflectTypeToSchema(definitions Definitions, t reflect.Type) *Type {
 	// Already added to definitions?
@@ -173,6 +181,10 @@ func (r *Reflector) reflectTypeToSchema(definitions Definitions, t reflect.Type)
 			{Type: "string"},
 			{Type: "integer"},
 		}}
+	}
+
+	if t.Implements(customSchemaType) {
+		return reflect.New(t).Elem().Interface().(customSchema).SchemaType()
 	}
 
 	// Defined format types for JSON Schema Validation
